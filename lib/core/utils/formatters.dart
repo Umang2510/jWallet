@@ -19,6 +19,20 @@ abstract final class Formatters {
   static String dateTime(String iso) =>
       _dateTime.format(DateTime.parse(iso).toLocal());
 
+  /// "Today, 9:41 AM" / "Yesterday, 10:00 AM" / "24 Oct, 8:45 PM".
+  /// [now] is injectable for tests.
+  static String relativeDateTime(String iso, {DateTime? now}) {
+    final time = DateTime.parse(iso).toLocal();
+    final today = _dayOnly(now ?? DateTime.now());
+    final days = today.difference(_dayOnly(time)).inDays;
+    final clock = DateFormat('h:mm a').format(time);
+    if (days == 0) return 'Today, $clock';
+    if (days == 1) return 'Yesterday, $clock';
+    return '${DateFormat('d MMM').format(time)}, $clock';
+  }
+
+  static DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
   /// "Demo User" -> "DU"
   static String initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);

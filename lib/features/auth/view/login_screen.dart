@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/session/session_cubit.dart';
 import '../../../core/extensions/spacing_extension.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_gradients.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_snackbar.dart';
@@ -118,19 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Positioned.fill(
           child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(1, -0.85),
-                radius: 1.25,
-                colors: const [
-                  AppColors.tertiary,
-                  AppColors.secondary,
-                  Color(0xFFFFBD98),
-                  AppColors.primary,
-                ],
-                stops: const [0.06, 0.35, 0.58, 1],
-              ),
-            ),
+            decoration: const BoxDecoration(gradient: AppGradients.hero),
           ),
         ),
         Padding(padding: EdgeInsets.all(24.r), child: _buildHeroContent()),

@@ -15,6 +15,8 @@ import '../features/app_lock/view_model/app_lock_cubit.dart';
 import '../features/app_lock/view_model/app_lock_setup_cubit.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/view_model/login_cubit.dart';
+import '../features/home/data/home_repository.dart';
+import '../features/home/view_model/home_cubit.dart';
 import '../features/security/data/security_repository.dart';
 import '../features/security/view_model/biometric_setup_cubit.dart';
 import '../features/security/view_model/pin_setup_cubit.dart';
@@ -56,7 +58,9 @@ void setupDependencies({AppConfig? config}) {
     ..registerLazySingleton<AppLockRepository>(
       () => AppLockRepository(sl(), sl()),
     )
+    ..registerLazySingleton<HomeRepository>(() => HomeRepository(sl()))
     ..registerFactory<LoginCubit>(() => LoginCubit(sl()))
+    ..registerFactory<HomeCubit>(() => HomeCubit(sl()))
     ..registerFactory<PinSetupCubit>(() => PinSetupCubit(sl()))
     ..registerFactory<BiometricSetupCubit>(() => BiometricSetupCubit(sl()))
     ..registerLazySingleton<SessionCubit>(() => SessionCubit(sl()))

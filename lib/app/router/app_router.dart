@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../features/auth/view/login_screen.dart';
 import '../../features/auth/view_model/login_cubit.dart';
+import '../../features/home/view/home_screen.dart';
+import '../../features/home/view_model/home_cubit.dart';
 import '../../features/security/view/biometric_setup_screen.dart';
 import '../../features/security/view/pin_setup_screen.dart';
 import '../../features/security/view_model/biometric_setup_cubit.dart';
@@ -15,6 +17,7 @@ import '../di.dart';
 import '../session/session_cubit.dart';
 import '../session/session_state.dart';
 import 'app_routes.dart';
+import 'main_shell.dart';
 import 'placeholder_screen.dart';
 
 /// All navigation. Access rules live in [_redirect], so screens never have
@@ -54,9 +57,37 @@ GoRouter createRouter(SessionCubit session) {
           child: const BiometricSetupScreen(),
         ),
       ),
-      _route(
-        AppRoutes.dashboard,
-        (_) => const PlaceholderScreen(title: 'Dashboard', showLogout: true),
+      StatefulShellRoute.indexedStack(
+        pageBuilder: (context, state, navigationShell) => MaterialPage(
+          key: state.pageKey,
+          child: MainShell(navigationShell: navigationShell),
+        ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              _route(
+                AppRoutes.dashboard,
+                (_) => BlocProvider(
+                  create: (_) => sl<HomeCubit>()..load(),
+                  child: Builder(
+                    builder: (context) => HomeScreen(
+                      onSend: () => context.push(AppRoutes.sendMoney),
+                      onActivity: () => context.go(AppRoutes.transactions),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              _route(
+                AppRoutes.transactions,
+                (_) => const PlaceholderScreen(title: 'Activity'),
+              ),
+            ],
+          ),
+        ],
       ),
       _route(
         AppRoutes.sendMoney,
@@ -69,10 +100,6 @@ GoRouter createRouter(SessionCubit session) {
       _route(
         AppRoutes.transferResult,
         (_) => const PlaceholderScreen(title: 'Transfer Result'),
-      ),
-      _route(
-        AppRoutes.transactions,
-        (_) => const PlaceholderScreen(title: 'Transactions'),
       ),
       _route(
         '/transactions/:id',

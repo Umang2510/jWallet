@@ -47,6 +47,7 @@ dependencies:
   uuid: ^4.6.0
   pointycastle: ^4.0.0
   local_auth: ^3.0.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
