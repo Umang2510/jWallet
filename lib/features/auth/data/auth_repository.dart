@@ -79,13 +79,20 @@ class AuthRepository {
 
   Future<void> clearSession() => _authenticated.clear();
 
+  /// Log out: tell the server (the API call), then wipe everything the app
+  /// saved on this phone. The wipe happens even if the server cannot be
+  /// reached, and the error is passed on only after it is done.
   Future<void> logout() async {
     try {
       if (await _authenticated.session() != null) {
         await _authenticated.request('POST', '/api/v1/auth/logout', body: {});
       }
     } finally {
-      await _authenticated.clear();
+      try {
+        await _authenticated.clear();
+      } finally {
+        await _store.clearAll();
+      }
     }
   }
 }

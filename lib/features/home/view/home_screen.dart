@@ -3,6 +3,7 @@ import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/logout_button.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/home_models.dart';
@@ -98,7 +99,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Settings and profile are UI only for now.
+  /// Log out is real; the profile is UI only for now.
   Widget _buildTopBar(ThemeData theme) => Row(
     children: [
       Expanded(
@@ -110,8 +111,8 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-      Icon(Icons.tune, color: AppColors.textSecondary, size: 24.r),
-      SizedBox(width: 18.w),
+      const LogoutButton(),
+      SizedBox(width: 10.w),
       Container(
         width: 40.r,
         height: 40.r,

@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../features/activity/view/activity_screen.dart';
+import '../../features/activity/view_model/activity_cubit.dart';
 import '../../features/auth/view/login_screen.dart';
 import '../../features/auth/view_model/login_cubit.dart';
 import '../../features/home/view/home_screen.dart';
@@ -27,7 +29,6 @@ import '../session/session_cubit.dart';
 import '../session/session_state.dart';
 import 'app_routes.dart';
 import 'main_shell.dart';
-import 'placeholder_screen.dart';
 
 /// All navigation. Access rules live in [_redirect], so screens never have
 /// to check "am I logged in?" themselves:
@@ -97,7 +98,16 @@ GoRouter createRouter(SessionCubit session) {
             routes: [
               _route(
                 AppRoutes.transactions,
-                (_) => const PlaceholderScreen(title: 'Activity'),
+                (_) => BlocProvider(
+                  create: (_) => sl<ActivityCubit>()..load(),
+                  child: Builder(
+                    builder: (context) => ActivityScreen(
+                      onOpen: (item) => context.push(
+                        AppRoutes.transactionDetails(item.id),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

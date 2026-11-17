@@ -12,7 +12,10 @@ import 'package:j_wallet/core/events/wallet_events.dart';
 import 'package:j_wallet/core/network/authenticated_client.dart';
 import 'package:j_wallet/core/theme/app_theme.dart';
 import 'package:j_wallet/core/widgets/responsive_app.dart';
+import 'package:j_wallet/features/activity/data/activity_repository.dart';
+import 'package:j_wallet/features/activity/view_model/activity_cubit.dart';
 import 'package:j_wallet/features/auth/data/auth_repository.dart';
+import 'package:j_wallet/features/auth/view_model/login_cubit.dart';
 import 'package:j_wallet/features/home/data/home_repository.dart';
 import 'package:j_wallet/features/home/view/home_screen.dart';
 import 'package:j_wallet/features/home/view_model/home_cubit.dart';
@@ -33,6 +36,7 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 /// The real router, real repositories and cubits; only the network is faked.
 void main() {
   late MockClient client;
+  late MockAuthRepository auth;
   late SessionCubit session;
   late WalletEvents events;
   late double balance;
@@ -50,8 +54,9 @@ void main() {
     client = MockClient();
     events = WalletEvents();
     final keys = MockKeys();
-    final auth = MockAuthRepository();
+    auth = MockAuthRepository();
     when(() => auth.expired).thenAnswer((_) => const Stream.empty());
+    when(() => auth.logout()).thenAnswer((_) async {});
     session = SessionCubit(auth);
 
     when(() => client.session()).thenAnswer((_) async => {'userId': 'USR1'});
@@ -64,6 +69,24 @@ void main() {
     when(
       () => client.request('GET', '/api/v1/transactions?page=1&limit=5'),
     ).thenAnswer((_) async => transactionsJson());
+    when(
+      () => client.request('GET', '/api/v1/transactions?page=1&limit=20'),
+    ).thenAnswer((_) async => transactionsJson());
+    when(
+      () => client.request('GET', '/api/v1/transactions/TXN20261117AAAAAA'),
+    ).thenAnswer(
+      (_) async => {
+        'id': 'TXN20261117AAAAAA',
+        'type': 'DEBIT',
+        'amount': 1500,
+        'currency': 'INR',
+        'beneficiaryName': 'Rahul Sharma',
+        'status': 'SUCCESS',
+        'createdAt': '2026-11-17T04:00:00.000Z',
+        'mobileNumber': 'XXXXXX3210',
+        'remarks': null,
+      },
+    );
     when(
       () => client.request(
         'POST',
@@ -99,12 +122,17 @@ void main() {
     );
 
     sl
+      ..registerFactory<LoginCubit>(() => LoginCubit(auth))
       ..registerSingleton<WalletEvents>(events)
       ..registerSingleton<HomeRepository>(HomeRepository(client))
       ..registerSingleton<TransferRepository>(
         TransferRepository(client, keys, events),
       )
       ..registerSingleton<TransactionRepository>(TransactionRepository(client))
+      ..registerSingleton<ActivityRepository>(ActivityRepository(client))
+      ..registerFactory<ActivityCubit>(
+        () => ActivityCubit(sl(), walletChanges: events.changes),
+      )
       ..registerFactory<HomeCubit>(
         () => HomeCubit(sl(), walletChanges: events.changes),
       );
@@ -210,6 +238,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(HomeScreen), findsOneWidget);
     expect(find.text('SEND MONEY'), findsNothing);
+  });
+
+  testWidgets('History opens the ledger; a row opens its details', (
+    tester,
+  ) async {
+    await launch(tester);
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    expect(find.text('TRANSACTION HISTORY'), findsOneWidget);
+    expect(find.textContaining('NOV 2026'), findsWidgets);
+    await tester.tap(find.text('Rahul Sharma'));
+    await tester.pumpAndSettle();
+    expect(find.text('TRANSACTION'), findsOneWidget);
+    expect(find.text('Sent to Rahul Sharma'), findsOneWidget);
+    expect(find.text('TXN20261117AAAAAA'), findsOneWidget);
+    // Back returns to the ledger, still on the Activity tab.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('TRANSACTION HISTORY'), findsOneWidget);
+  });
+
+  testWidgets('a transfer refreshes the ledger that was already open', (
+    tester,
+  ) async {
+    await launch(tester);
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('HOME'));
+    await tester.pumpAndSettle();
+    await sendUntilDetails(tester);
+    await tester.tap(find.text('DONE'));
+    await tester.pumpAndSettle();
+    verify(
+      () => client.request('GET', '/api/v1/transactions?page=1&limit=20'),
+    ).called(greaterThanOrEqualTo(2));
+  });
+
+  testWidgets('Log out calls the API and returns to the login screen', (
+    tester,
+  ) async {
+    await launch(tester);
+    await tester.tap(find.byIcon(Icons.logout));
+    await tester.pumpAndSettle();
+    expect(find.text('Log out?'), findsOneWidget);
+    await tester.tap(find.text('LOG OUT'));
+    await tester.pumpAndSettle();
+    verify(() => auth.logout()).called(1);
+    expect(find.text('Welcome back.'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsNothing);
+  });
+
+  testWidgets('Log out works from the Activity tab too', (tester) async {
+    await launch(tester);
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.logout));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('LOG OUT'));
+    await tester.pumpAndSettle();
+    verify(() => auth.logout()).called(1);
+    expect(find.text('Welcome back.'), findsOneWidget);
+    expect(find.text('TRANSACTION HISTORY'), findsNothing);
   });
 
   testWidgets('a Quick Send tile opens Send Money already addressed', (

@@ -33,6 +33,20 @@ abstract final class Formatters {
 
   static DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
+  /// "09:42 AM" in the phone's time zone.
+  static String clock(String iso) =>
+      DateFormat('hh:mm a').format(DateTime.parse(iso).toLocal());
+
+  /// Day headings for the history: "TODAY, 17 NOV 2026", "YESTERDAY, 16 NOV
+  /// 2026", then just "20 OCT 2026". [now] is injectable for tests.
+  static String dayHeading(DateTime day, {DateTime? now}) {
+    final date = DateFormat('d MMM yyyy').format(day).toUpperCase();
+    final days = _dayOnly(now ?? DateTime.now()).difference(_dayOnly(day)).inDays;
+    if (days == 0) return 'TODAY, $date';
+    if (days == 1) return 'YESTERDAY, $date';
+    return date;
+  }
+
   /// "Demo User" -> "DU"
   static String initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);

@@ -14,6 +14,8 @@ import '../core/storage/secure_store.dart';
 import '../features/app_lock/data/app_lock_repository.dart';
 import '../features/app_lock/view_model/app_lock_cubit.dart';
 import '../features/app_lock/view_model/app_lock_setup_cubit.dart';
+import '../features/activity/data/activity_repository.dart';
+import '../features/activity/view_model/activity_cubit.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/view_model/login_cubit.dart';
 import '../features/home/data/home_repository.dart';
@@ -63,6 +65,7 @@ void setupDependencies({AppConfig? config}) {
       () => AppLockRepository(sl(), sl()),
     )
     ..registerLazySingleton<HomeRepository>(() => HomeRepository(sl()))
+    ..registerLazySingleton<ActivityRepository>(() => ActivityRepository(sl()))
     ..registerLazySingleton<TransferRepository>(
       () => TransferRepository(sl(), sl(), sl()),
     )
@@ -70,6 +73,9 @@ void setupDependencies({AppConfig? config}) {
       () => TransactionRepository(sl()),
     )
     ..registerFactory<LoginCubit>(() => LoginCubit(sl()))
+    ..registerFactory<ActivityCubit>(
+      () => ActivityCubit(sl(), walletChanges: sl<WalletEvents>().changes),
+    )
     ..registerFactory<HomeCubit>(
       () => HomeCubit(sl(), walletChanges: sl<WalletEvents>().changes),
     )

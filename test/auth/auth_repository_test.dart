@@ -48,6 +48,7 @@ void main() {
     when(() => keys.hasBiometricKey(any())).thenAnswer((_) async => false);
     when(() => authenticated.saveLogin(any())).thenAnswer((_) async {});
     when(() => authenticated.clear()).thenAnswer((_) async {});
+    when(() => store.clearAll()).thenAnswer((_) async {});
   });
 
   test('login normalizes only email and binds the device key', () async {
@@ -170,5 +171,55 @@ void main() {
     ).thenThrow(const ApiException('Offline'));
     await expectLater(repository.logout(), throwsA(isA<ApiException>()));
     verify(() => authenticated.clear()).called(1);
+  });
+
+  group('logout (API call, then wipe everything)', () {
+    void stubLogoutCall({Object? error}) {
+      when(
+        () => authenticated.session(),
+      ).thenAnswer((_) async => {'accessToken': 'access'});
+      final call = when(
+        () => authenticated.request(
+          'POST',
+          '/api/v1/auth/logout',
+          body: any(named: 'body'),
+        ),
+      );
+      error == null
+          ? call.thenAnswer((_) async => {})
+          : call.thenThrow(error);
+    }
+
+    test('tells the server, then wipes everything on the phone', () async {
+      stubLogoutCall();
+      await repository.logout();
+      verify(
+        () => authenticated.request(
+          'POST',
+          '/api/v1/auth/logout',
+          body: any(named: 'body'),
+        ),
+      ).called(1);
+      verify(() => authenticated.clear()).called(1);
+      verify(() => store.clearAll()).called(1);
+    });
+
+    test('still wipes the phone when the server cannot be reached', () async {
+      stubLogoutCall(
+        error: const ApiException('Offline', notProcessed: true),
+      );
+      await expectLater(repository.logout(), throwsA(isA<ApiException>()));
+      verify(() => authenticated.clear()).called(1);
+      verify(() => store.clearAll()).called(1);
+    });
+
+    test('with no saved session there is nobody to tell', () async {
+      when(() => authenticated.session()).thenAnswer((_) async => null);
+      await repository.logout();
+      verifyNever(
+        () => authenticated.request(any(), any(), body: any(named: 'body')),
+      );
+      verify(() => store.clearAll()).called(1);
+    });
   });
 }

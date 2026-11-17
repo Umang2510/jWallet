@@ -33,6 +33,10 @@ class SecureStore {
     await _storage.delete(key: _appLockKey);
   }
 
+  /// Everything the app stored on this phone: session, app lock PIN and the
+  /// device id (the next sign-in registers as a brand new device).
+  Future<void> clearAll() => _storage.deleteAll();
+
   /// The app lock PIN record (salted hash + attempt counters), only used on
   /// phones that have no screen lock of their own.
   Future<void> saveAppLock(Map<String, dynamic> record) =>
