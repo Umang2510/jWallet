@@ -8,6 +8,7 @@ class SecureStore {
   final FlutterSecureStorage _storage;
   static const _sessionKey = 'jwallet.session';
   static const _deviceKey = 'jwallet.device';
+  static const _appLockKey = 'jwallet.applock';
 
   Future<String> deviceId() async {
     final existing = await _storage.read(key: _deviceKey);
@@ -25,5 +26,19 @@ class SecureStore {
     return value == null ? null : jsonDecode(value) as Map<String, dynamic>;
   }
 
-  Future<void> clearSession() => _storage.delete(key: _sessionKey);
+  /// Ends the session: tokens AND the app lock PIN go together, so the next
+  /// person to sign in sets up their own lock.
+  Future<void> clearSession() async {
+    await _storage.delete(key: _sessionKey);
+    await _storage.delete(key: _appLockKey);
+  }
+
+  /// The app lock PIN record (salted hash + attempt counters), only used on
+  /// phones that have no screen lock of their own.
+  Future<void> saveAppLock(Map<String, dynamic> record) =>
+      _storage.write(key: _appLockKey, value: jsonEncode(record));
+  Future<Map<String, dynamic>?> readAppLock() async {
+    final value = await _storage.read(key: _appLockKey);
+    return value == null ? null : jsonDecode(value) as Map<String, dynamic>;
+  }
 }

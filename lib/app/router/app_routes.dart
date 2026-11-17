@@ -3,6 +3,7 @@ abstract final class AppRoutes {
   static const splash = '/splash';
   static const login = '/login';
   static const setPin = '/set-pin';
+  static const setBiometric = '/set-biometric';
 
   static const dashboard = '/dashboard';
 

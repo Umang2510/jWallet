@@ -54,26 +54,22 @@ abstract final class Validators {
     return null;
   }
 
-  /// UPI-style PIN: 4 or 6 digits, not trivially guessable.
-  static String? newPin(String? value) {
-    final v = value ?? '';
-    if (!RegExp(r'^(\d{4}|\d{6})$').hasMatch(v)) {
-      return 'PIN must be 4 or 6 digits';
-    }
-    if (isWeakPin(v)) {
-      return 'Too easy to guess. Avoid repeated or sequential digits.';
-    }
+  /// A PIN being checked, not created: 4 or 6 digits.
+  static String? existingPin(String? value) {
+    if (!RegExp(r'^(\d{4}|\d{6})$').hasMatch(value ?? '')) return 'Enter your 4 or 6 digit transaction PIN';
     return null;
   }
 
-  /// Same rules as the backend: 0000, 1234, 4321, 1212, 121212 ...
-  static bool isWeakPin(String pin) {
-    if (RegExp(r'^(\d)\1+$').hasMatch(pin)) return true;
-    final d = pin.split('').map(int.parse).toList();
-    final steps = [for (var i = 1; i < d.length; i++) d[i] - d[i - 1]];
-    if (steps.every((s) => s == 1) || steps.every((s) => s == -1)) return true;
-    if (pin.length == 4 && pin.substring(0, 2) == pin.substring(2)) return true;
-    if (pin.length == 6 && RegExp(r'^(\d\d)\1\1$').hasMatch(pin)) return true;
-    return false;
+  static String? confirmPin(String? value, String first) {
+    if (value != first) return 'PINs do not match. Please try again.';
+    return null;
+  }
+
+  /// A new PIN: exactly 4 or 6 digits. No pattern rules, so 1234 is allowed.
+  static String? newPin(String? value) {
+    if (!RegExp(r'^(\d{4}|\d{6})$').hasMatch(value ?? '')) {
+      return 'PIN must be 4 or 6 digits';
+    }
+    return null;
   }
 }

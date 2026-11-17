@@ -4,9 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../features/splash/view/splash_screen.dart';
 import '../../features/auth/view/login_screen.dart';
 import '../../features/auth/view_model/login_cubit.dart';
+import '../../features/security/view/biometric_setup_screen.dart';
+import '../../features/security/view/pin_setup_screen.dart';
+import '../../features/security/view_model/biometric_setup_cubit.dart';
+import '../../features/security/view_model/pin_setup_cubit.dart';
+import '../../features/splash/view/splash_screen.dart';
 import '../di.dart';
 import '../session/session_cubit.dart';
 import '../session/session_state.dart';
@@ -19,7 +23,8 @@ import 'placeholder_screen.dart';
 ///   unknown            → splash
 ///   logged out         → login
 ///   logged in, no PIN  → set PIN (mandatory, like UPI)
-///   logged in + PIN    → anywhere except splash/login/set-PIN
+///   PIN just created   → optional biometric setup
+///   logged in + PIN    → anywhere except splash/login/set-PIN/set-biometric
 GoRouter createRouter(SessionCubit session) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -37,7 +42,17 @@ GoRouter createRouter(SessionCubit session) {
       ),
       _route(
         AppRoutes.setPin,
-        (_) => const PlaceholderScreen(title: 'Set PIN', showLogout: true),
+        (_) => BlocProvider(
+          create: (_) => sl<PinSetupCubit>(),
+          child: const PinSetupScreen(),
+        ),
+      ),
+      _route(
+        AppRoutes.setBiometric,
+        (_) => BlocProvider(
+          create: (_) => sl<BiometricSetupCubit>()..checkAvailability(),
+          child: const BiometricSetupScreen(),
+        ),
       ),
       _route(
         AppRoutes.dashboard,
@@ -69,7 +84,12 @@ GoRouter createRouter(SessionCubit session) {
 }
 
 String? _redirect(SessionState session, String location) {
-  const entry = {AppRoutes.splash, AppRoutes.login, AppRoutes.setPin};
+  const entry = {
+    AppRoutes.splash,
+    AppRoutes.login,
+    AppRoutes.setPin,
+    AppRoutes.setBiometric,
+  };
 
   switch (session.status) {
     case SessionStatus.unknown:
@@ -79,6 +99,11 @@ String? _redirect(SessionState session, String location) {
     case SessionStatus.authenticated:
       if (!session.pinSet) {
         return location == AppRoutes.setPin ? null : AppRoutes.setPin;
+      }
+      if (session.biometricSetupPending) {
+        return location == AppRoutes.setBiometric
+            ? null
+            : AppRoutes.setBiometric;
       }
       return entry.contains(location) ? AppRoutes.dashboard : null;
   }

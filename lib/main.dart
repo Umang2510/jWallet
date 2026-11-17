@@ -7,8 +7,9 @@ import 'app/app.dart';
 import 'app/di.dart';
 import 'app/session/session_cubit.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   GoogleFonts.config.allowRuntimeFetching = false;
   LicenseRegistry.addLicense(() async* {
     for (final family in ['Geist', 'SpaceGrotesk']) {

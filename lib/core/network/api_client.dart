@@ -41,12 +41,10 @@ class ApiClient {
         final meta = envelope['meta'] as Map<String, dynamic>?;
         final error = envelope['body'] as Map<String, dynamic>?;
         throw ApiException(
-          status >= 500
-              ? 'The server is unavailable. Please try again.'
-              : (meta?['message'] as String? ??
-                    'Unable to complete the request.'),
+          meta?['message'] as String? ?? 'Unable to complete the request.',
           statusCode: status,
           code: error?['errorCode'] as String?,
+          notProcessed: const {429, 502, 503}.contains(status),
         );
       }
       // Successful plaintext responses must never downgrade the encrypted channel.
@@ -61,7 +59,14 @@ class ApiClient {
         DioExceptionType.receiveTimeout,
       }.contains(error.type);
       throw ApiException(
-        timeout ? 'The request timed out. Please try again.' : 'Unable to connect. Check your internet connection and try again.',
+        timeout
+            ? 'The request timed out. Please try again.'
+            : 'Unable to connect. Check your internet connection and try again.',
+        // The request never reached the server, so nothing was consumed.
+        notProcessed: const {
+          DioExceptionType.connectionTimeout,
+          DioExceptionType.connectionError,
+        }.contains(error.type),
       );
     } on ApiException {
       rethrow;

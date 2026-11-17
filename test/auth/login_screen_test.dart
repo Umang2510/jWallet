@@ -35,6 +35,7 @@ void main() {
   setUp(() {
     GoogleFonts.config.allowRuntimeFetching = false;
     repository = MockAuthRepository();
+    when(() => repository.expired).thenAnswer((_) => const Stream.empty());
     login = LoginCubit(repository);
     session = SessionCubit(repository);
   });

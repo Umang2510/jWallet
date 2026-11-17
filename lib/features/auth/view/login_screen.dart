@@ -8,6 +8,7 @@ import '../../../core/extensions/spacing_extension.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_button.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../view_model/login_cubit.dart';
 
@@ -210,7 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
         autofillHints: const [AutofillHints.username],
         validator: Validators.email,
         enabled: !state.isSubmitting,
-        onChanged: (_) => context.read<LoginCubit>().clearError(),
         onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
       ),
       20.sizedBoxHeight(),
@@ -225,13 +225,8 @@ class _LoginScreenState extends State<LoginScreen> {
         autofillHints: const [AutofillHints.password],
         validator: Validators.password,
         enabled: !state.isSubmitting,
-        onChanged: (_) => context.read<LoginCubit>().clearError(),
         onFieldSubmitted: (_) => _submit(),
       ),
-      if (state.message != null) ...[
-        16.sizedBoxHeight(),
-        _buildError(state.message!),
-      ],
       24.sizedBoxHeight(),
       AppButton(
         label: 'Sign in',
@@ -240,22 +235,6 @@ class _LoginScreenState extends State<LoginScreen> {
         onPressed: _submit,
       ),
     ],
-  );
-
-  Widget _buildError(String message) => Semantics(
-    liveRegion: true,
-    child: Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodySmall
-            ?.copyWith(color: AppColors.error),
-      ),
-    ),
   );
 
   Widget _buildFooter() => Row(
@@ -283,9 +262,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _onStateChanged(BuildContext context, LoginState state) {
+    if (state.status == LoginStatus.failure && state.message != null) {
+      // Server failures arrive here with the API's own meta.message.
+      AppSnackbar.show(context, state.message!, isError: true);
+      return;
+    }
     if (state.status != LoginStatus.success) return;
     TextInput.finishAutofillContext();
     _password.clear();
-    context.read<SessionCubit>().loggedIn(pinSet: state.pinSet);
+    context.read<SessionCubit>().loggedIn(
+      pinSet: state.pinSet,
+      biometricEnrolled: state.biometricEnrolled,
+      offerBiometricSetup: state.offerBiometricSetup,
+    );
   }
 }

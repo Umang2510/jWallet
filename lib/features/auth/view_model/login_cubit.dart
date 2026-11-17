@@ -11,13 +11,25 @@ class LoginState extends Equatable {
     this.status = LoginStatus.initial,
     this.message,
     this.pinSet = false,
+    this.biometricEnrolled = false,
+    this.offerBiometricSetup = false,
   });
   final LoginStatus status;
+
+  /// Failure text: the API's `meta.message`, shown in a snackbar.
   final String? message;
   final bool pinSet;
+  final bool biometricEnrolled;
+  final bool offerBiometricSetup;
   bool get isSubmitting => status == LoginStatus.submitting;
   @override
-  List<Object?> get props => [status, message, pinSet];
+  List<Object?> get props => [
+    status,
+    message,
+    pinSet,
+    biometricEnrolled,
+    offerBiometricSetup,
+  ];
 }
 
 class LoginCubit extends Cubit<LoginState> {
@@ -30,7 +42,14 @@ class LoginCubit extends Cubit<LoginState> {
     try {
       final result = await _repository.login(email: email, password: password);
       if (!isClosed) {
-        emit(LoginState(status: LoginStatus.success, pinSet: result.pinSet));
+        emit(
+          LoginState(
+            status: LoginStatus.success,
+            pinSet: result.pinSet,
+            biometricEnrolled: result.biometricEnrolled,
+            offerBiometricSetup: result.offerBiometricSetup,
+          ),
+        );
       }
     } on ApiException catch (error) {
       if (!isClosed) {
@@ -46,9 +65,5 @@ class LoginCubit extends Cubit<LoginState> {
         );
       }
     }
-  }
-
-  void clearError() {
-    if (state.status == LoginStatus.failure) emit(const LoginState());
   }
 }
