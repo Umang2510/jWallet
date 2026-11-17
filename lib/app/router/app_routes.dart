@@ -9,7 +9,6 @@ abstract final class AppRoutes {
 
   static const sendMoney = '/send-money';
   static const transferConfirm = '/send-money/confirm';
-  static const transferResult = '/send-money/result';
 
   static const transactions = '/transactions';
   static String transactionDetails(String id) => '/transactions/$id';

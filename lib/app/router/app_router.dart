@@ -13,6 +13,15 @@ import '../../features/security/view/pin_setup_screen.dart';
 import '../../features/security/view_model/biometric_setup_cubit.dart';
 import '../../features/security/view_model/pin_setup_cubit.dart';
 import '../../features/splash/view/splash_screen.dart';
+import '../../features/transactions/data/transaction_details.dart';
+import '../../features/transactions/view/transaction_details_screen.dart';
+import '../../features/transactions/view_model/transaction_details_cubit.dart';
+import '../../features/transfer/data/recipient.dart';
+import '../../features/transfer/data/transfer_models.dart';
+import '../../features/transfer/view/confirm_transfer_screen.dart';
+import '../../features/transfer/view/send_money_screen.dart';
+import '../../features/transfer/view_model/send_money_cubit.dart';
+import '../../features/transfer/view_model/transfer_cubit.dart';
 import '../di.dart';
 import '../session/session_cubit.dart';
 import '../session/session_state.dart';
@@ -71,7 +80,12 @@ GoRouter createRouter(SessionCubit session) {
                   create: (_) => sl<HomeCubit>()..load(),
                   child: Builder(
                     builder: (context) => HomeScreen(
-                      onSend: () => context.push(AppRoutes.sendMoney),
+                      onSend: (contact) => context.push(
+                        AppRoutes.sendMoney,
+                        extra: contact == null
+                            ? null
+                            : Recipient.fromContact(contact),
+                      ),
                       onActivity: () => context.go(AppRoutes.transactions),
                     ),
                   ),
@@ -91,21 +105,73 @@ GoRouter createRouter(SessionCubit session) {
       ),
       _route(
         AppRoutes.sendMoney,
-        (_) => const PlaceholderScreen(title: 'Send Money'),
+        (s) => BlocProvider(
+          create: (_) => SendMoneyCubit(
+            sl(),
+            recipient: s.extra is Recipient ? s.extra as Recipient : null,
+          )..load(),
+          child: Builder(
+            builder: (context) => SendMoneyScreen(
+              onReview: (draft) =>
+                  context.push(AppRoutes.transferConfirm, extra: draft),
+            ),
+          ),
+        ),
       ),
       _route(
         AppRoutes.transferConfirm,
-        (_) => const PlaceholderScreen(title: 'Confirm Transfer'),
+        // Opened without a draft (for example after the app was restored):
+        // start again from the amount screen.
+        redirect: (state) =>
+            state.extra is TransferDraft ? null : AppRoutes.sendMoney,
+        (s) {
+          final draft = s.extra! as TransferDraft;
+          return BlocProvider(
+            create: (_) => TransferCubit(sl(), draft)..prepare(),
+            child: Builder(
+              builder: (context) => ConfirmTransferScreen(
+                draft: draft,
+                // pushReplacement keeps the Hero flight from the coin.
+                onDone: (receipt) => context.pushReplacement(
+                  AppRoutes.transactionDetails(receipt.transactionId),
+                  extra: TransactionDetailsArgs(
+                    initial: TransactionDetails.fromReceipt(receipt),
+                    fromTransfer: true,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
-      _route(
-        AppRoutes.transferResult,
-        (_) => const PlaceholderScreen(title: 'Transfer Result'),
-      ),
-      _route(
-        '/transactions/:id',
-        (s) =>
-            PlaceholderScreen(title: 'Transaction ${s.pathParameters['id']}'),
-      ),
+      _route('/transactions/:id', (s) {
+        final args = s.extra is TransactionDetailsArgs
+            ? s.extra as TransactionDetailsArgs
+            : null;
+        final fromTransfer = args?.fromTransfer ?? false;
+        return BlocProvider(
+          create: (_) => TransactionDetailsCubit(
+            sl(),
+            s.pathParameters['id']!,
+            initial: args?.initial,
+          )..load(),
+          child: Builder(
+            builder: (context) {
+              // After a transfer, "back" means Home, not the amount screen.
+              void done() => fromTransfer
+                  ? context.go(AppRoutes.dashboard)
+                  : Navigator.of(context).maybePop();
+              return PopScope(
+                canPop: !fromTransfer,
+                onPopInvokedWithResult: (didPop, _) {
+                  if (!didPop) done();
+                },
+                child: TransactionDetailsScreen(onDone: done),
+              );
+            },
+          ),
+        );
+      }),
     ],
   );
 }
@@ -138,8 +204,13 @@ String? _redirect(SessionState session, String location) {
 
 /// A route using material_ui's MaterialPage (go_router would otherwise not
 /// detect our MaterialApp, which now lives in the material_ui package).
-GoRoute _route(String path, Widget Function(GoRouterState) builder) => GoRoute(
+GoRoute _route(
+  String path,
+  Widget Function(GoRouterState) builder, {
+  String? Function(GoRouterState)? redirect,
+}) => GoRoute(
   path: path,
+  redirect: redirect == null ? null : (context, state) => redirect(state),
   pageBuilder: (context, state) =>
       MaterialPage(key: state.pageKey, child: builder(state)),
 );

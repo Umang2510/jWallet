@@ -13,6 +13,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     String? accessToken,
+    Map<String, String>? headers,
   }) async {
     try {
       final encrypted = _cipher.seal(method, path, body);
@@ -24,6 +25,7 @@ class ApiClient {
           validateStatus: (status) => status != null,
           headers: {
             ...encrypted.headers,
+            ...?headers,
             if (accessToken != null) 'Authorization': 'Bearer $accessToken',
           },
         ),

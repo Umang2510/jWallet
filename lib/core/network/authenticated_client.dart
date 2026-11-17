@@ -60,13 +60,24 @@ class AuthenticatedClient {
     if (reason != null) _expired.add(reason);
   }
 
-  Future<Map<String, dynamic>> request(String method, String path, {Map<String, dynamic>? body}) async {
+  Future<Map<String, dynamic>> request(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? headers,
+  }) async {
     final current = await session();
     if (current == null) throw const ApiException('Please sign in again.', statusCode: 401);
     final generation = _generation;
     var token = current['accessToken'] as String;
     try {
-      return await _api.request(method, path, body: body, accessToken: token);
+      return await _api.request(
+        method,
+        path,
+        body: body,
+        headers: headers,
+        accessToken: token,
+      );
     } on ApiException catch (error) {
       if (generation != _generation) rethrow;
       if (error.code != 'TOKEN_EXPIRED') {
@@ -83,7 +94,13 @@ class AuthenticatedClient {
     token = _session!['accessToken'] as String;
     try {
       // One retry only, freshly encrypted with a new nonce.
-      return await _api.request(method, path, body: body, accessToken: token);
+      return await _api.request(
+        method,
+        path,
+        body: body,
+        headers: headers,
+        accessToken: token,
+      );
     } on ApiException catch (error) {
       if (generation == _generation && (error.statusCode == 401 || error.code == 'ACCOUNT_INACTIVE')) {
         await clear(reason: error);

@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import '../core/config/app_config.dart';
 import '../core/crypto/device_keys.dart';
 import '../core/crypto/e2e_cipher.dart';
+import '../core/events/wallet_events.dart';
 import '../core/network/api_client.dart';
 import '../core/network/authenticated_client.dart';
 import '../core/storage/secure_store.dart';
@@ -18,6 +19,8 @@ import '../features/auth/view_model/login_cubit.dart';
 import '../features/home/data/home_repository.dart';
 import '../features/home/view_model/home_cubit.dart';
 import '../features/security/data/security_repository.dart';
+import '../features/transactions/data/transaction_repository.dart';
+import '../features/transfer/data/transfer_repository.dart';
 import '../features/security/view_model/biometric_setup_cubit.dart';
 import '../features/security/view_model/pin_setup_cubit.dart';
 import 'router/app_router.dart';
@@ -33,6 +36,7 @@ void setupDependencies({AppConfig? config}) {
     )
     ..registerLazySingleton<E2eCipher>(() => E2eCipher(sl()))
     ..registerLazySingleton<DeviceKeys>(DeviceKeys.new)
+    ..registerLazySingleton<WalletEvents>(WalletEvents.new)
     ..registerLazySingleton<Dio>(
       () => Dio(
         BaseOptions(
@@ -59,8 +63,16 @@ void setupDependencies({AppConfig? config}) {
       () => AppLockRepository(sl(), sl()),
     )
     ..registerLazySingleton<HomeRepository>(() => HomeRepository(sl()))
+    ..registerLazySingleton<TransferRepository>(
+      () => TransferRepository(sl(), sl(), sl()),
+    )
+    ..registerLazySingleton<TransactionRepository>(
+      () => TransactionRepository(sl()),
+    )
     ..registerFactory<LoginCubit>(() => LoginCubit(sl()))
-    ..registerFactory<HomeCubit>(() => HomeCubit(sl()))
+    ..registerFactory<HomeCubit>(
+      () => HomeCubit(sl(), walletChanges: sl<WalletEvents>().changes),
+    )
     ..registerFactory<PinSetupCubit>(() => PinSetupCubit(sl()))
     ..registerFactory<BiometricSetupCubit>(() => BiometricSetupCubit(sl()))
     ..registerLazySingleton<SessionCubit>(() => SessionCubit(sl()))

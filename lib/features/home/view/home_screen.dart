@@ -18,8 +18,9 @@ import 'widgets/recent_activity_card.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onSend, required this.onActivity});
 
-  /// Opens Send Money (Send button, Quick Send tiles).
-  final VoidCallback onSend;
+  /// Opens Send Money. [QuickContact] when a Quick Send tile was tapped, null
+  /// for the Send button and "New" (the screen then asks who to pay).
+  final void Function(QuickContact? contact) onSend;
 
   /// Switches to the Activity tab (History, View all).
   final VoidCallback onActivity;
@@ -72,7 +73,7 @@ class HomeScreen extends StatelessWidget {
                     profile: data.profile,
                     wallet: data.wallet,
                   ),
-                  onSend: onSend,
+                  onSend: () => onSend(null),
                   onAddMoney: () => AppSnackbar.show(
                     context,
                     'Add money is a demo-only feature.',
@@ -82,8 +83,8 @@ class HomeScreen extends StatelessWidget {
                 SizedBox(height: 22.h),
                 QuickSendRow(
                   contacts: quickContacts,
-                  onSelect: (_) => onSend(),
-                  onNew: onSend,
+                  onSelect: onSend,
+                  onNew: () => onSend(null),
                 ),
                 SizedBox(height: 22.h),
                 RecentActivityCard(items: data.recent, onViewAll: onActivity),

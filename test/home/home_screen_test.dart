@@ -53,7 +53,7 @@ void main() {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.dark(),
             home: HomeScreen(
-              onSend: () => sent++,
+              onSend: (_) => sent++,
               onActivity: () => openedActivity++,
             ),
           ),

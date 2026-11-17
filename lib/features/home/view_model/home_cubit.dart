@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -30,8 +32,14 @@ class HomeState extends Equatable {
 }
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit(this._repository) : super(const HomeState());
+  /// [walletChanges] (a transfer was made) triggers a quiet refresh.
+  HomeCubit(this._repository, {Stream<void>? walletChanges})
+    : super(const HomeState()) {
+    _changes = walletChanges?.listen((_) => refresh());
+  }
+
   final HomeRepository _repository;
+  StreamSubscription<void>? _changes;
   bool _loading = false;
   int _failures = 0;
 
@@ -73,5 +81,11 @@ class HomeCubit extends Cubit<HomeState> {
         failureId: ++_failures,
       ),
     );
+  }
+
+  @override
+  Future<void> close() {
+    _changes?.cancel();
+    return super.close();
   }
 }

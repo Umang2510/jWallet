@@ -12,11 +12,16 @@ class PinKeypad extends StatelessWidget {
     required this.onDigit,
     required this.onDelete,
     this.enabled = true,
+    this.showDecimal = false,
   });
 
   final ValueChanged<String> onDigit;
   final VoidCallback onDelete;
   final bool enabled;
+
+  /// Amount entry: the bottom-left key is a "." instead of the lock icon. It
+  /// calls [onDigit] with ".".
+  final bool showDecimal;
 
   @override
   Widget build(BuildContext context) {
@@ -36,15 +41,29 @@ class PinKeypad extends StatelessWidget {
       row([for (final d in ['4', '5', '6']) _digit(context, d)]),
       row([for (final d in ['7', '8', '9']) _digit(context, d)]),
       row([
-        _key(
-          context,
-          label: 'Secure keypad',
-          child: Icon(
-            Icons.lock_outline,
-            size: 20.r,
-            color: AppColors.textSecondary,
+        if (showDecimal)
+          _key(
+            context,
+            label: 'Decimal point',
+            action: () => onDigit('.'),
+            child: Text(
+              '.',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: 25.sp,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+          )
+        else
+          _key(
+            context,
+            label: 'Secure keypad',
+            child: Icon(
+              Icons.lock_outline,
+              size: 20.r,
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
         _digit(context, '0'),
         _key(
           context,
